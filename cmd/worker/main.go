@@ -26,18 +26,19 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	cfg, err := config.LoadConfig("")
+	cfg, err := config.LoadConfig("") //TODO
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
 	db, err := database.NewPG(&cfg.DBCfg)
+	defer db.Close()
 	if err != nil {
 		return fmt.Errorf("connect to db: %w", err)
 	}
 	defer db.DB.Close()
 	client := http.Client{} 
 
-	subRepo := subs.NewRepo(db.DB)
+	subRepo := subs.NewRepo(db)
 	deliveryRepo := delivery.NewRepository(db)
 	deliveryService := delivery.NewService(deliveryRepo, &client)
 

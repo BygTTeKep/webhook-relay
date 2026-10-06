@@ -49,3 +49,7 @@ func (pg *PGRepository) WithTx(ctx context.Context, fn func(tx *sql.Tx) error) e
 	}
 	return  nil
 }
+
+func (pg *PGRepository) Close() error {
+	return pg.DB.Close()
+}

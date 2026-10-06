@@ -2,6 +2,8 @@ package relay
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,17 +16,27 @@ import (
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-		cfg, err := config.LoadConfig("")
+
+	if err := run(ctx); err != nil {
+		slog.Error("relay exited with error", "err", err)
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context) error {
+	cfg, err := config.LoadConfig("") //TODO
 	if err != nil {
-		stop()
+		return fmt.Errorf("load config: %w", err)
 	}
 	db, err := database.NewPG(&cfg.DBCfg)
+	defer db.Close()
 	if err != nil {
-		stop()
+		return fmt.Errorf("connect to db: %w", err)
 	}
 	relayRepo := relay.NewRepository(db)
-	producer := kafka.NewProducer([]string{}, "events")
+	producer := kafka.NewProducer([]string{}, "events") //TODO
 	runner := relay.NewRunner(relayRepo, producer)
 	runner.Run(ctx)
 	defer producer.Close()
+	return nil
 }

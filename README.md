@@ -15,7 +15,12 @@
 |created_at| timestamp | t | current time |
 
 ### SubscriptionEvents
---
+| name | type| requires| default |
+|--|--|-|-|
+|id              |bigserial    |t|-|
+|subscription_id |uuid         |t|-|
+|event_type      |varchar      |t|-|
+
 
 ### Events
 
@@ -30,10 +35,17 @@
 ### Delivery
 | name | type| requires| default |
 |--|--|-|-|
-|id              |uuid      |t|-|
+|id              |bigserial |t|-|
 |event_id        |uuid      |t|-|
 |subscription_id |uuid      |t|-|
 |status          |varchar   |t|-|
 |attempts        |int       |t|-|
 |last_attempt_at |timestamp |t|-|
 
+### outbox
+| name | type| requires| default |
+|--|--|-|-|
+|id              |bigserial    |t|-|
+|event_id        |text    |t|-|
+|status          |varchar(30)    |t|-|
+|created_at      |timestamp    |t|-|

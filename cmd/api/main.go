@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -19,20 +20,31 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	if err := run(ctx); err != nil {
+		slog.Error("api exited with error", "err", err)
+		os.Exit(1)
+	}	
+}
 
-	cfg, err := config.LoadConfig("")
+func run(ctx context.Context) error {
+	serverErr := make(chan error, 1)
+	cfg, err := config.LoadConfig("") //TODO
 	if err != nil {
-		stop()
+		return fmt.Errorf("load config: %w", err)
 	}
 	pg, err := database.NewPG(&cfg.DBCfg)
+	defer pg.Close()
 	if err != nil {
-		stop()
+		return fmt.Errorf("connect to db: %w", err)
+	}
+	if err = database.RunMigrations(pg.DB); err != nil {
+		return fmt.Errorf("run migrations: %w", err)
 	}
 
 	mux := http.NewServeMux();
 
 	// Subs
-	subRepo := subs.NewRepo(pg.DB)
+	subRepo := subs.NewRepo(pg)
 	subServices := subs.NewService(subRepo)
 	subRouters := subs.NewHandler(subServices)
 
@@ -52,14 +64,22 @@ func main() {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("server failed", "err", err)
-			stop()
+			serverErr <- err
+			return 			
 		}
+		close(serverErr)
 	}()
-	<-ctx.Done()
+
+	select {
+	case  <-ctx.Done():
+	case <-serverErr:
+		return fmt.Errorf("server failed: %w", err)
+	}
+
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("shutdown failed", "err", err)
 	}
+	return nil
 }

@@ -3,27 +3,70 @@ package subs
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"time"
+	"webhook-relay/internal/database"
 	"webhook-relay/internal/events"
+
+	"github.com/lib/pq"
 )
 
 type Repository struct{
-	DB *sql.DB
+	*database.PGRepository
 }
 
-func NewRepo(db *sql.DB) *Repository {
+func NewRepo(db *database.PGRepository) *Repository {
 	return &Repository{
-		DB: db,
+		db,
 	}
 }
 
 
-func (sr *Repository) Save(ctx context.Context, s Subscription)error {
-	querySub := `
-	INSERT INTO subscriptions (URL, Secret, Active, CreatedAt, ID)
-	VALUES ()`
-	_, err:= sr.DB.ExecContext(ctx, querySub, s.URL, s.Secret, s.Active, s.ID)
+func (sr *Repository) Save(ctx context.Context, s Subscription, tx *sql.Tx) (int, error) {
+	query := `
+		INSERT INTO subscriptions (url, secret, active, created_at, ID)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`
+
+	var insertId int
+
+	err := tx.QueryRowContext(ctx, query, s.URL, s.Secret, s.Active, time.Now(), s.ID).Scan(&insertId)
 	if err != nil {
-		return  err
+		return insertId, err
+	}
+	return insertId, nil
+}
+
+func (sr *Repository) SaveSubEventsTx(ctx context.Context, subId int, e []string, tx *sql.Tx) error {
+	if len(e) == 0 {
+		return nil
+	}
+
+	query := `
+		INSERT INTO subscription_events(subscription_id, event_type)
+		SELECT $1, unnest($2::[]text)
+	`
+	if _, err := tx.ExecContext(ctx, query, subId, pq.Array(e)); err != nil {
+		return fmt.Errorf("insert subscription_events: %w", err)
+	}
+	return nil
+}
+
+func (sr *Repository) SaveSubAndEventsTx(ctx context.Context, s Subscription, e []string) error {
+	err := sr.WithTx(ctx, func(tx *sql.Tx) error {
+		subId, err := sr.Save(ctx, s, tx)
+		if err != nil {
+			return err
+		}
+		err = sr.SaveSubEventsTx(ctx, subId, e, tx)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 	return nil
 }

@@ -2,14 +2,17 @@ package subs
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"webhook-relay/internal/events"
 )
 
 type RepoInterface interface {
-	Save(ctx context.Context, s Subscription) error
+	Save(ctx context.Context, s Subscription, tx *sql.Tx) (int, error)
 	Get(ctx context.Context, id, secret string) (Subscription, error)
 	FindByEventType(ctx context.Context, t events.EventType) ([]Subscription, error)
+	SaveSubAndEventsTx(ctx context.Context, s Subscription, e []string) error
+	SaveSubEventsTx(ctx context.Context, subId int, e []string, tx *sql.Tx) error
 }
 
 type Service struct {
@@ -27,7 +30,7 @@ func (s *Service) Create(ctx context.Context, dto CreateSubscriptionRequestDto) 
 	if err != nil {
 		return fmt.Errorf("save subscription: %s", err)
 	}
-	if err := s.repo.Save(ctx, subscription); err != nil {
+	if err := s.repo.SaveSubAndEventsTx(ctx, subscription, dto.Events); err != nil {
 		return fmt.Errorf("save subscription: %s", err)
 	}
 	return nil

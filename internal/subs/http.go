@@ -8,8 +8,8 @@ import (
 )
 
 type CreateSubscriptionRequestDto struct {
-	Events []string `json: "events"`
-	URL    string   `json: "url"`
+	Events []string `json:"events"`
+	URL    string   `json:"url"`
 }
 
 type GetSubscriptionRequestDto struct {
