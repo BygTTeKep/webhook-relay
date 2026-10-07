@@ -20,6 +20,9 @@ type GetSubscriptionRequestDto struct {
 
 func (csr *CreateSubscriptionRequestDto) Validate() error {
 	var errs []error
+	if (len(csr.URL) == 0) {
+		errs = append(errs, errors.New("url must not be empty"))
+	}
 	if (len(csr.Events) == 0) {
 		errs = append(errs, errors.New("events must not be empty"))
 	}

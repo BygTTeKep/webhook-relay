@@ -1,0 +1,16 @@
+database:
+  driver: "pg"
+  host: "localhost"
+  port: 5432
+  username: "webhook"
+  name: "webhook_relay"
+  password: "webhook"
+
+app:
+  host: "localhost"
+  port: 3000
+
+kafka:
+  topic: "events"
+  brokers:
+    - "localhost:9092"

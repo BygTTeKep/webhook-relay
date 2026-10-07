@@ -13,14 +13,16 @@ type PGRepository struct {
 
 func NewPG(cfg *config.DBConfig) (*PGRepository, error) {
 	var connStr string
-
-	if cfg.Driver == "postgres" {
+	if cfg.Driver == "pg" {
 		connStr = fmt.Sprintf(
 			"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 			cfg.Host, cfg.Port, cfg.Username, cfg.Password, cfg.Name,
 		)
 	}
-	db, err := sql.Open(cfg.Driver, connStr)
+	db, err := sql.Open("postgres", connStr)
+	if err := db.Ping(); err != nil {
+		return  nil, err
+	}
 	if err != nil {
 		return nil, err
 	}

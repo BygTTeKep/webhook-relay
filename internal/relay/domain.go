@@ -12,3 +12,11 @@ type OutBoxEvents struct {
 	Status string
 	CratedAt time.Time
 }
+
+type Message struct {
+	OutboxID int64
+	ID      string
+	Payload json.RawMessage
+	EventType string
+	Status string
+}

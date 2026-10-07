@@ -3,6 +3,7 @@ package relay
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"log/slog"
 	"time"
 	"webhook-relay/internal/kafka"
@@ -20,10 +21,10 @@ func NewRunner(repo *Repository, producer *kafka.Producer) *Runner {
 	}
 }
 
-func idsOf(rows []OutBoxEvents) []int64 {
+func idsOf(rows []Message) []int64 {
 	ids := make([]int64, 0, len(rows))
 	for _, v := range rows {
-		ids = append(ids, v.ID)
+		ids = append(ids, v.OutboxID)
 	}
 	return ids
 }
@@ -36,6 +37,7 @@ func (r *Runner) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			slog.Info("tick")
 			if err := r.ticker(ctx); err != nil {
 				slog.Error("relay tick failed", "err", err)
 			}
@@ -44,13 +46,20 @@ func (r *Runner) Run(ctx context.Context) {
 }
 
 func (r *Runner) ticker(ctx context.Context) error {
-	r.repo.WithTx(ctx, func(tx *sql.Tx) error {
+	err := r.repo.WithTx(ctx, func(tx *sql.Tx) error {
 		rows, err := r.repo.FetchPending(ctx, tx, 100)
 		if err != nil {
 			return err
 		}
+		if len(rows) == 0 {
+			return nil
+		}
 		for _, row := range rows {
-			if err := r.producer.Publish(ctx, "events", row.Payload); err != nil {
+			body, err := json.Marshal(row)
+			if err != nil {
+				return err
+			}
+			if err := r.producer.Publish(ctx, "events", body); err != nil {
 				return err
 			}
 		}
@@ -61,5 +70,8 @@ func (r *Runner) ticker(ctx context.Context) error {
 		}
 		return  nil
 	})
+	if err != nil {
+		return err
+	}
 	return  nil;
 }

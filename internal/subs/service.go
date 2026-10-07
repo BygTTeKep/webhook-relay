@@ -8,11 +8,11 @@ import (
 )
 
 type RepoInterface interface {
-	Save(ctx context.Context, s Subscription, tx *sql.Tx) (int, error)
+	Save(ctx context.Context, s Subscription, tx *sql.Tx) (string, error)
 	Get(ctx context.Context, id, secret string) (Subscription, error)
 	FindByEventType(ctx context.Context, t events.EventType) ([]Subscription, error)
 	SaveSubAndEventsTx(ctx context.Context, s Subscription, e []string) error
-	SaveSubEventsTx(ctx context.Context, subId int, e []string, tx *sql.Tx) error
+	SaveSubEventsTx(ctx context.Context, subId string, e []string, tx *sql.Tx) error
 }
 
 type Service struct {

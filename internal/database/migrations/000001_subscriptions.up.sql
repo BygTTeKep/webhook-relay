@@ -3,5 +3,5 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     url text NOT NULL,
     secret text NOT NULL,
     active boolean NOT NULL DEFAULT TRUE,
-    created_at timestamp CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT now()
 );

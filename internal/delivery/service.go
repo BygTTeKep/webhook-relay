@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"webhook-relay/internal/events"
+	"webhook-relay/internal/relay"
 	"webhook-relay/internal/subs"
 )
 
@@ -27,8 +27,8 @@ func NewService(repo RepositoryInterface, client *http.Client) *Service {
 	}
 }
 
-func (s *Service) Delivery(ctx context.Context, e events.Event, sub subs.Subscription) error {
-	body, _ := json.Marshal(e)
+func (s *Service) Delivery(ctx context.Context, e relay.Message, sub subs.Subscription) error {
+	body, _ := json.Marshal(e.Payload)
 	sig := sign(body, sub.Secret)
 
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, sub.URL, bytes.NewReader(body))
@@ -48,7 +48,7 @@ func (s *Service) Delivery(ctx context.Context, e events.Event, sub subs.Subscri
 		LastAttemptAt:  time.Now(),
 	})
 	if err != nil {
-		return fmt.Errorf("delivery event save failed")
+		return fmt.Errorf("delivery event save failed: %w", err)
 	}
 	return nil
 }

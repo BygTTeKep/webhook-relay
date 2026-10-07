@@ -1,4 +1,4 @@
-package api
+package main
 
 import (
 	"context"
@@ -28,7 +28,7 @@ func main() {
 
 func run(ctx context.Context) error {
 	serverErr := make(chan error, 1)
-	cfg, err := config.LoadConfig("") //TODO
+	cfg, err := config.LoadConfig("../../internal/config")
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
@@ -63,6 +63,8 @@ func run(ctx context.Context) error {
 	}
 
 	go func() {
+		slog.Info("server started")
+
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serverErr <- err
 			return 			
@@ -72,8 +74,10 @@ func run(ctx context.Context) error {
 
 	select {
 	case  <-ctx.Done():
-	case <-serverErr:
-		return fmt.Errorf("server failed: %w", err)
+	case srvErr := <-serverErr:
+		if srvErr != nil {
+			return fmt.Errorf("server failed: %w", srvErr)
+		}
 	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

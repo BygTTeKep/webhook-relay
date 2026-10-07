@@ -17,7 +17,7 @@ func NewRepository(db *database.PGRepository) *Repository{
 func (r *Repository) Save(ctx context.Context, d Delivery) error {
 	query := `
 		INSERT INTO delivery(event_id, subscription_id, status, attempts, last_attempt_at)
-		VALUES(?, ?, ?, ?, ?)
+		VALUES($1, $2, $3, $4, $5)
 	`
 	res, err := r.DB.ExecContext(ctx, query, d.EventID, d.SubscriptionID, d.Status, d.Attempts, d.LastAttemptAt)
 	if err != nil {

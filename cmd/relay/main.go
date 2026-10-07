@@ -1,4 +1,4 @@
-package relay
+package main
 
 import (
 	"context"
@@ -24,18 +24,21 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	cfg, err := config.LoadConfig("") //TODO
+	cfg, err := config.LoadConfig("../../internal/config") 
+
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
 	db, err := database.NewPG(&cfg.DBCfg)
-	defer db.Close()
 	if err != nil {
 		return fmt.Errorf("connect to db: %w", err)
 	}
+	defer db.Close()
+
 	relayRepo := relay.NewRepository(db)
-	producer := kafka.NewProducer([]string{}, "events") //TODO
+	producer := kafka.NewProducer(cfg.KafkaCfg.Brokers, cfg.KafkaCfg.Topic)
 	runner := relay.NewRunner(relayRepo, producer)
+	slog.Info("relay started")
 	runner.Run(ctx)
 	defer producer.Close()
 	return nil

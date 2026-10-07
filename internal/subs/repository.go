@@ -8,6 +8,7 @@ import (
 	"webhook-relay/internal/database"
 	"webhook-relay/internal/events"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
@@ -22,30 +23,30 @@ func NewRepo(db *database.PGRepository) *Repository {
 }
 
 
-func (sr *Repository) Save(ctx context.Context, s Subscription, tx *sql.Tx) (int, error) {
+func (sr *Repository) Save(ctx context.Context, s Subscription, tx *sql.Tx) (string, error) {
 	query := `
-		INSERT INTO subscriptions (url, secret, active, created_at, ID)
+		INSERT INTO subscriptions (url, secret, active, created_at, id)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id
 	`
 
-	var insertId int
-
-	err := tx.QueryRowContext(ctx, query, s.URL, s.Secret, s.Active, time.Now(), s.ID).Scan(&insertId)
+	var insertId string
+	uuid := uuid.NewString()
+	err := tx.QueryRowContext(ctx, query, s.URL, s.Secret, s.Active, time.Now(), uuid).Scan(&insertId)
 	if err != nil {
 		return insertId, err
 	}
 	return insertId, nil
 }
 
-func (sr *Repository) SaveSubEventsTx(ctx context.Context, subId int, e []string, tx *sql.Tx) error {
+func (sr *Repository) SaveSubEventsTx(ctx context.Context, subId string, e []string, tx *sql.Tx) error {
 	if len(e) == 0 {
 		return nil
 	}
 
 	query := `
 		INSERT INTO subscription_events(subscription_id, event_type)
-		SELECT $1, unnest($2::[]text)
+		SELECT $1, unnest($2::text[])
 	`
 	if _, err := tx.ExecContext(ctx, query, subId, pq.Array(e)); err != nil {
 		return fmt.Errorf("insert subscription_events: %w", err)
@@ -87,7 +88,15 @@ func (sr *Repository) Get(ctx context.Context, id,  secret string) (Subscription
 func (sr *Repository) FindByEventType(ctx context.Context, t events.EventType) ([]Subscription, error) {
 	var subs []Subscription
 	query := `
-		SELECT FROM subscriptions WHERE 
+		SELECT
+			s.id,
+			s.url,
+			s.secret,
+			s.active,
+			s.created_at 
+		FROM subscription_events se 
+		INNER JOIN subscriptions s on s.id = se.subscription_id
+		WHERE se.event_type = $1 AND s.active = true 
 	`
 	rows, err := sr.DB.QueryContext(ctx, query, t)
 	if err != nil {
@@ -98,7 +107,7 @@ func (sr *Repository) FindByEventType(ctx context.Context, t events.EventType) (
 	if err != nil {}
 	for rows.Next() {
 		var sub Subscription
-		if err := rows.Scan(&sub); err != nil {
+		if err := rows.Scan(&sub.ID, &sub.URL, &sub.Secret, &sub.Active, &sub.CreatedAt); err != nil {
 			return nil, err
 		}
 		subs = append(subs, sub)

@@ -10,6 +10,7 @@ import (
 	"webhook-relay/internal/delivery"
 	"webhook-relay/internal/events"
 	"webhook-relay/internal/kafka"
+	"webhook-relay/internal/relay"
 	"webhook-relay/internal/subs"
 )
 
@@ -26,6 +27,7 @@ func NewWorker(c *kafka.Consumer) *Worker {
 func (w *Worker) Run(ctx context.Context, subsRepo subs.RepoInterface, d *delivery.Service) {
 	for {
 		msg, err := w.Reader.FetchMessage(ctx)
+		slog.Info("message: ", msg)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				return
@@ -33,7 +35,7 @@ func (w *Worker) Run(ctx context.Context, subsRepo subs.RepoInterface, d *delive
 			slog.Error("fetch message failed", "err", err)
 			continue
 		}
-		var e events.Event
+		var e relay.Message
 		err = json.Unmarshal(msg.Value, &e)
 		if err != nil {
 			slog.Error("unmarshal event failed", "err", err)

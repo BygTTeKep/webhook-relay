@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"webhook-relay/internal/database"
+
+	"github.com/google/uuid"
 )
 
 type Repository struct {
@@ -28,10 +30,10 @@ func (er *Repository) Publish(ctx context.Context, e Event) error {
 
 func (er *Repository) SaveEvent(ctx context.Context, tx *sql.Tx, e Event) error {
 	query := `
-		INSERT INTO events(id, event_type, payload, created_at)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO events(id, event_id, event_type, payload, created_at)
+		VALUES ($1, $2, $3, $4, $5)
 	`
-	_, err := tx.ExecContext(ctx, query, e.EventID, e.EventType, e.Payload, e.CreatedAt)
+	_, err := tx.ExecContext(ctx, query,uuid.NewString(), e.EventID, e.EventType, e.Payload, e.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("insert to events: %s", err)
 	}

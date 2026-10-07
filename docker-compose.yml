@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    enviroment:
+    environment:
       POSTGRES_USER: webhook
       POSTGRES_PASSWORD: webhook
       POSTGRES_DB: webhook_relay
@@ -15,7 +15,7 @@ services:
       timeout: 3s
       retries: 5
 
-    redis:
+  redis:
       image: redis:7-alpine
       ports:
        - "6379:6379"
@@ -25,7 +25,7 @@ services:
         timeout: 3s
         retries: 5
     
-    kafka:
+  kafka:
       image: apache/kafka:3.8.0
       ports:
         - "9092:9092"
@@ -33,66 +33,66 @@ services:
         KAFKA_NODE_ID: 1
         KAFKA_PROCESS_ROLES: broker,controller
         KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
         KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
         KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
         KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
         KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     
-    api:
-      build:
-        context: .
-        args:
-          SERVICE: api
-        environment:
-          DB_HOST: postgres
-          DB_USER: webhook
-          DB_PASSWORD: webhook
-          DB_NAME: webhook_relay
-          REDIS_ADDR: redis:6379
-        ports:
-          - "8080:8080"
-        depends_on:
-          postgres:
-            condition: service_healthy
-          redis:
-            condition: service_healthy
+    # api:
+    #   build:
+    #     context: .
+    #     args:
+    #       SERVICE: api
+    #     environment:
+    #       DB_HOST: postgres
+    #       DB_USER: webhook
+    #       DB_PASSWORD: webhook
+    #       DB_NAME: webhook_relay
+    #       REDIS_ADDR: redis:6379
+    #     ports:
+    #       - "8080:8080"
+    #     depends_on:
+    #       postgres:
+    #         condition: service_healthy
+    #       redis:
+    #         condition: service_healthy
     
-    relay:
-      build:
-        context: .
-        args:
-          SERVICE: relay
-      environment:
-        DB_HOST: postgres
-        DB_USER: webhook
-        DB_PASSWORD: webhook
-        DB_NAME: webhook_relay
-        KAFKA_BROKERS: kafka:9092
-      depends_on:
-        postgres:
-          condition: service_healthy
-        kafka:
-          condition: service_started
+    # relay:
+    #   build:
+    #     context: .
+    #     args:
+    #       SERVICE: relay
+    #   environment:
+    #     DB_HOST: postgres
+    #     DB_USER: webhook
+    #     DB_PASSWORD: webhook
+    #     DB_NAME: webhook_relay
+    #     KAFKA_BROKERS: kafka:9092
+    #   depends_on:
+    #     postgres:
+    #       condition: service_healthy
+    #     kafka:
+    #       condition: service_started
 
-    worker:
-      build:
-        context: .
-        args:
-          SERVICE: worker
-      environment:
-        DB_HOST: postgres
-        DB_USER: webhook
-        DB_PASSWORD: webhook
-        DB_NAME: webhook_relay
-        KAFKA_BROKERS: kafka:9092
-      depends_on:
-        postgres:
-          condition: service_healthy
-        kafka:
-          condition: service_started
-      # deploy:
-      #   replicas: 2 # пример масштабирования воркера
+    # worker:
+    #   build:
+    #     context: .
+    #     args:
+    #       SERVICE: worker
+    #   environment:
+    #     DB_HOST: postgres
+    #     DB_USER: webhook
+    #     DB_PASSWORD: webhook
+    #     DB_NAME: webhook_relay
+    #     KAFKA_BROKERS: kafka:9092
+    #   depends_on:
+    #     postgres:
+    #       condition: service_healthy
+    #     kafka:
+    #       condition: service_started
+    #   # deploy:
+    #   #   replicas: 2 # пример масштабирования воркера
 
 volumes:
   pg-data:

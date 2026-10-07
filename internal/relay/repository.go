@@ -21,12 +21,18 @@ func NewRepository(db *database.PGRepository) *Repository {
 	return &Repository{db}
 }
 
-func (r *Repository) FetchPending(ctx context.Context, tx *sql.Tx, limit int) ([]OutBoxEvents, error) {
+func (r *Repository) FetchPending(ctx context.Context, tx *sql.Tx, limit int) ([]Message, error) {
 	query := `
-		SELECT id, event_id, payload, status, created_at
-		FROM outbox
+		SELECT 
+			o.id as id, 
+			e.payload, 
+			e.event_type,
+			e.id, 
+			o.status
+		FROM outbox o
+		INNER JOIN events e on e.event_id = o.event_id
 		WHERE status = 'pending'
-		ORDER BY id
+		ORDER BY o.id
 		LIMIT $1
 		FOR UPDATE SKIP LOCKED
 	`
@@ -35,11 +41,11 @@ func (r *Repository) FetchPending(ctx context.Context, tx *sql.Tx, limit int) ([
 		return nil, fmt.Errorf("query outbox: %w", err)
 	}
 	defer row.Close()
-	outbox := make([]OutBoxEvents, 0, limit)
+	outbox := make([]Message, 0, limit)
 
 	for row.Next() {
-		var o OutBoxEvents
-		if err := row.Scan(&o.ID, &o.EventId, &o.Payload, &o.Status, &o.CratedAt); err != nil {
+		var o Message
+		if err := row.Scan(&o.OutboxID, &o.Payload, &o.EventType, &o.ID, &o.Status); err != nil {
 			return nil, fmt.Errorf("scan outbox row: %w", err)
 		}
 		outbox = append(outbox, o)

@@ -1,4 +1,4 @@
-package worker
+package main
 
 import (
 	"context"
@@ -26,26 +26,28 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	cfg, err := config.LoadConfig("") //TODO
+	cfg, err := config.LoadConfig("../../internal/config")
+	slog.Info("config ", "kafka", cfg.KafkaCfg)
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
 	db, err := database.NewPG(&cfg.DBCfg)
-	defer db.Close()
 	if err != nil {
 		return fmt.Errorf("connect to db: %w", err)
 	}
-	defer db.DB.Close()
+	defer db.Close()
+
 	client := http.Client{} 
 
 	subRepo := subs.NewRepo(db)
 	deliveryRepo := delivery.NewRepository(db)
 	deliveryService := delivery.NewService(deliveryRepo, &client)
 
-	consumer:= kafka.NewConsumer([]string{}, "") //TODO
+	consumer:= kafka.NewConsumer(cfg.KafkaCfg.Brokers, cfg.KafkaCfg.Topic) 
 	defer consumer.Close()
 	
 	wr := worker.NewWorker(consumer)
+	slog.Info("worker started")
 	wr.Run(ctx, subRepo, deliveryService)
 	return nil
 }
