@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	statsv1 "webhook-relay/cmd/gen/stats/v1"
 	"webhook-relay/internal/config"
 	"webhook-relay/internal/database"
 	"webhook-relay/internal/delivery"
@@ -16,6 +17,8 @@ import (
 	"webhook-relay/internal/worker"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -47,11 +50,19 @@ func run(ctx context.Context, cfg *config.Config, log *zap.Logger) error {
 	}
 	defer db.Close()
 
+	statsConn, err := grpc.NewClient(cfg.GrpcServer.StatsServ, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("grpc stats conn: %w", err)
+	}
+	defer statsConn.Close()
+
+	statsClient := statsv1.NewStatsServiceClient(statsConn)
+
 	client := http.Client{}
 
 	subRepo := subs.NewRepo(db)
 	deliveryRepo := delivery.NewRepository(db)
-	deliveryService := delivery.NewService(deliveryRepo, &client)
+	deliveryService := delivery.NewService(deliveryRepo, &client, statsClient, log)
 
 	consumer := kafka.NewConsumer(cfg.KafkaCfg.Brokers, cfg.KafkaCfg.Topic)
 	defer consumer.Close()

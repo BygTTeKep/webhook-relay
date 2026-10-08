@@ -24,16 +24,17 @@ func main() {
 	cfg, err := config.LoadConfig("../../internal/config")
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "load config: %w", err)
+		fmt.Fprintf(os.Stderr, "load config: %v", err)
 		os.Exit(1)
 	}
 	log, err := logger.New("api", cfg.LoggerCfg.Dev)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "logger init: %w", err)
+		fmt.Fprintf(os.Stderr, "logger init: %v", err)
 		os.Exit(1)
 
 	}
 	code := 0
+
 	if err := run(ctx, cfg, log); err != nil {
 		log.Error("api exited with error", zap.Error(err))
 		code = 1
@@ -54,7 +55,6 @@ func run(ctx context.Context, cfg *config.Config, log *zap.Logger) error {
 	// if err = database.RunMigrations(pg.DB); err != nil {
 	// 	return fmt.Errorf("run migrations: %w", err)
 	// }
-
 	mux := http.NewServeMux()
 
 	// Subs

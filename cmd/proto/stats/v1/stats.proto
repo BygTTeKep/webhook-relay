@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package stats.v1;
+
+option go_package = "webhook-relay/gen/stats/v1;statsv1";
+
+
+service StatsService {
+    rpc RecordDelivery(RecordDeliveryRequest) returns (RecordDeliveryResponse);
+    rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+}
+
+message RecordDeliveryRequest {
+    string webhook_id = 1;
+    bool success = 2;
+    int32 status_code = 3;
+    int64 latency_ms = 4;
+}
+
+message RecordDeliveryResponse {}
+
+message GetStatsRequest {
+    string webhook_id = 1;
+}
+
+message GetStatsResponse {
+    int64 total = 1;
+    int64 succeeded = 2;
+    int64 failed = 3;
+    double avg_latency_ms = 4;
+}

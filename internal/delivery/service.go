@@ -12,10 +12,12 @@ import (
 	"net/url"
 	"sync"
 	"time"
+	statsv1 "webhook-relay/cmd/gen/stats/v1"
 	"webhook-relay/internal/relay"
 	"webhook-relay/internal/subs"
 
 	"github.com/sony/gobreaker"
+	"go.uber.org/zap"
 )
 
 const (
@@ -31,19 +33,23 @@ type Service struct {
 	repo   RepositoryInterface
 	client *http.Client
 
-	mu       sync.Mutex
-	breakers map[string]*gobreaker.CircuitBreaker
+	mu        sync.Mutex
+	breakers  map[string]*gobreaker.CircuitBreaker
+	statsGrps statsv1.StatsServiceClient
+	logger    *zap.Logger
 }
 
 type permanentError struct{ err error }
 
 func (e *permanentError) Error() string { return e.err.Error() }
 
-func NewService(repo RepositoryInterface, client *http.Client) *Service {
+func NewService(repo RepositoryInterface, client *http.Client, statsGrps statsv1.StatsServiceClient, logger *zap.Logger) *Service {
 	return &Service{
-		repo:     repo,
-		client:   client,
-		breakers: make(map[string]*gobreaker.CircuitBreaker),
+		repo:      repo,
+		client:    client,
+		breakers:  make(map[string]*gobreaker.CircuitBreaker),
+		statsGrps: statsGrps,
+		logger:    logger,
 	}
 }
 
@@ -130,6 +136,7 @@ func (s *Service) breakerFor(rawUrl string) *gobreaker.CircuitBreaker {
 }
 
 func (s *Service) send(ctx context.Context, sig string, sub subs.Subscription, body []byte) error {
+	start := time.Now()
 	ctx, cancel := context.WithTimeout(ctx, attemptTimeout)
 	defer cancel()
 
@@ -145,8 +152,15 @@ func (s *Service) send(ctx context.Context, sig string, sub subs.Subscription, b
 		return err
 	}
 	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
-
+	_, copyErr := io.Copy(io.Discard, resp.Body)
+	statsCtx, statsCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer statsCancel()
+	latency := time.Since(start)
+	ok := copyErr == nil && resp.StatusCode < 300
+	s.recordStats(statsCtx, sub.ID, ok, resp.StatusCode, latency)
+	if err != nil {
+		fmt.Println(err)
+	}
 	switch {
 	case resp.StatusCode < 300:
 		{
@@ -167,4 +181,19 @@ func backoff(attempt int) time.Duration {
 		d = 5 * time.Second
 	}
 	return d/2 + rand.N(d/2)
+}
+
+func (s *Service) recordStats(ctx context.Context, webhookID string, success bool, status int, latency time.Duration) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	_, err := s.statsGrps.RecordDelivery(ctx, &statsv1.RecordDeliveryRequest{
+		WebhookId:  webhookID,
+		Success:    success,
+		StatusCode: int32(status),
+		LatencyMs:  latency.Milliseconds(),
+	})
+	if err != nil {
+		s.logger.Warn("record stats failed", zap.Error(err))
+	}
 }

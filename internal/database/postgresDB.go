@@ -28,9 +28,9 @@ func NewPG(ctx context.Context, cfg *config.DBConfig) (*PGRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := pool.Ping(ctx); err != nil {
-		return nil, err
-	}
+	// if err := pool.Ping(ctx); err != nil {
+	// 	return nil, err
+	// }
 	return &PGRepository{
 		DB: pool,
 	}, nil
@@ -41,8 +41,8 @@ func (pg *PGRepository) WithTx(ctx context.Context, fn func(tx pgx.Tx) error) er
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
-	defer func ()  {
-		if p := recover(); p!= nil {
+	defer func() {
+		if p := recover(); p != nil {
 			tx.Rollback(ctx)
 			panic(p)
 		}
@@ -56,9 +56,9 @@ func (pg *PGRepository) WithTx(ctx context.Context, fn func(tx pgx.Tx) error) er
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit tx: %w", err)
 	}
-	return  nil
+	return nil
 }
 
-func (pg *PGRepository) Close()  {
+func (pg *PGRepository) Close() {
 	pg.DB.Close()
 }
