@@ -4,26 +4,21 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 )
 
 type DBConfig struct {
-	Driver   string `mapstructure:"driver"`
-	Host     string `mapstructure:"host"`
-	Port     string `mapstructure:"port"`
-	Username string `mapstructure:"username"`
-	Name     string `mapstructure:"name"`
-	Password string `mapstructure:"password"`
-	Dsn string `mapstructure:"dsn"`
+	Dsn string `mapstructure:"dsn" validate:"required"`
 }
 type AppConfig struct {
 	Host string `mapstructure:"host"`
-	Port string `mapstructure:"port"`
+	Port int    `mapstructure:"port" validate:"required,min=1,max=65535"`
 }
 
 type KafkaConfig struct {
-	Brokers []string `mapstructure:"brokers"`
-	Topic string `mapstructure:"topic"`
+	Brokers []string `mapstructure:"brokers" validate:"required"`
+	Topic   string   `mapstructure:"topic" validate:"required"`
 }
 
 type LoggerConfig struct {
@@ -31,12 +26,11 @@ type LoggerConfig struct {
 }
 
 type Config struct {
-	DBCfg  DBConfig `mapstructure:"database"`
-	AppCfg AppConfig `mapstructure:"app"`
-	KafkaCfg KafkaConfig `mapstructure:"kafka"`
-	LoggerCfg LoggerConfig `mapstructure:"logger"`
+	DBCfg     DBConfig     `mapstructure:"database" validate:"required"`
+	AppCfg    AppConfig    `mapstructure:"app" validate:"required"`
+	KafkaCfg  KafkaConfig  `mapstructure:"kafka" validate:"required"`
+	LoggerCfg LoggerConfig `mapstructure:"logger" validate:"required"`
 }
-
 
 func LoadConfig(path string) (c *Config, err error) {
 	v := viper.New()
@@ -53,6 +47,10 @@ func LoadConfig(path string) (c *Config, err error) {
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("unmarshal config: %w", err)
+	}
+	validate := validator.New()
+	if err := validate.Struct(cfg); err != nil {
+		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 	return &cfg, nil
 }

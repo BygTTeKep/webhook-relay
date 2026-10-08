@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type CreateEventRequestDto struct {
-	EventType string              `json:"event_type"`
-	Payload   json.RawMessage `json:"payload"`
+	EventType string          `json:"event_type" validate:"required"`
+	Payload   json.RawMessage `json:"payload" validate:"required,json"`
 }
 
 type CreateEventResponseDto struct {
@@ -18,13 +20,13 @@ type CreateEventResponseDto struct {
 
 func (cer *CreateEventRequestDto) Validate() error {
 	var errs []error
-	if cer.EventType == "" {
-		errs = append(errs, fmt.Errorf("event_type is required"))
-	} else if !slices.Contains(AllowedEvents, cer.EventType) {
-		errs = append(errs, fmt.Errorf("unknown event type: %s", cer.EventType))
+	validate := validator.New()
+
+	if err := validate.Struct(cer); err != nil {
+		errs = append(errs, err)
 	}
-	if len(cer.Payload) == 0 {
-		errs = append(errs, fmt.Errorf("payload is required"))
+	if !slices.Contains(AllowedEvents, cer.EventType) {
+		errs = append(errs, fmt.Errorf("unknown event type: %s", cer.EventType))
 	}
 	return errors.Join(errs...)
 }
