@@ -3,22 +3,24 @@ package relay
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
 	"time"
 	"webhook-relay/internal/kafka"
 
 	"github.com/jackc/pgx/v5"
+	"go.uber.org/zap"
 )
 
 type Runner struct {
-	repo *Repository
+	repo     *Repository
 	producer *kafka.Producer
+	logger   *zap.Logger
 }
 
-func NewRunner(repo *Repository, producer *kafka.Producer) *Runner {
+func NewRunner(repo *Repository, producer *kafka.Producer, logger *zap.Logger) *Runner {
 	return &Runner{
-		repo: repo,
+		repo:     repo,
 		producer: producer,
+		logger:   logger,
 	}
 }
 
@@ -31,16 +33,15 @@ func idsOf(rows []Message) []int64 {
 }
 
 func (r *Runner) Run(ctx context.Context) {
-	ticker :=time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			slog.Info("tick")
 			if err := r.ticker(ctx); err != nil {
-				slog.Error("relay tick failed", "err", err)
+				r.logger.Error("relay tick failed", zap.Error(err))
 			}
 		}
 	}
@@ -67,12 +68,12 @@ func (r *Runner) ticker(ctx context.Context) error {
 		ids := idsOf(rows)
 		err = r.repo.MarkSend(ctx, tx, ids)
 		if err != nil {
-			return  err
+			return err
 		}
-		return  nil
+		return nil
 	})
 	if err != nil {
 		return err
 	}
-	return  nil;
+	return nil
 }

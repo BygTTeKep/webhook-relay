@@ -5,7 +5,8 @@ database:
   username: "webhook"
   name: "webhook_relay"
   password: "webhook"
-  dsn: "postgres://webhook:webhook@5432/webhook_relay?sslmode=false"
+  dsn: "postgresql://webhook:webhook@localhost:5432/webhook_relay"
+
 
 app:
   host: "localhost"
@@ -15,3 +16,6 @@ kafka:
   topic: "events"
   brokers:
     - "localhost:9092"
+
+logger:
+  dev: true

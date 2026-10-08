@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/lib/pq"
 )
 
 type Repository struct{
@@ -48,7 +47,7 @@ func (sr *Repository) SaveSubEventsTx(ctx context.Context, subId string, e []str
 		INSERT INTO subscription_events(subscription_id, event_type)
 		SELECT $1, unnest($2::text[])
 	`
-	if _, err := tx.Exec(ctx, query, subId, pq.Array(e)); err != nil {
+	if _, err := tx.Exec(ctx, query, subId, e); err != nil {
 		return fmt.Errorf("insert subscription_events: %w", err)
 	}
 	return nil

@@ -6,54 +6,57 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"webhook-relay/internal/delivery"
 	"webhook-relay/internal/events"
 	"webhook-relay/internal/kafka"
 	"webhook-relay/internal/relay"
 	"webhook-relay/internal/subs"
+
+	"go.uber.org/zap"
 )
 
 type Worker struct {
-	*kafka.Consumer
+	c      *kafka.Consumer
+	logger *zap.Logger
 }
 
-func NewWorker(c *kafka.Consumer) *Worker {
+func NewWorker(c *kafka.Consumer, logger *zap.Logger) *Worker {
 	return &Worker{
-		c,
+		c:      c,
+		logger: logger,
 	}
 }
 
 func (w *Worker) Run(ctx context.Context, subsRepo subs.RepoInterface, d *delivery.Service) {
 	for {
-		msg, err := w.Reader.FetchMessage(ctx)
-		slog.Info("message: ", msg)
+		msg, err := w.c.Reader.FetchMessage(ctx)
+		w.logger.Info("message: ", zap.Any("mesage", msg))
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				return
 			}
-			slog.Error("fetch message failed", "err", err)
+			w.logger.Error("fetch message failed", zap.Error(err))
 			continue
 		}
 		var e relay.Message
 		err = json.Unmarshal(msg.Value, &e)
 		if err != nil {
-			slog.Error("unmarshal event failed", "err", err)
-			continue 
+			w.logger.Error("unmarshal event failed", zap.Error(err))
+			continue
 		}
 		subs, err := subsRepo.FindByEventType(ctx, events.EventType(e.EventType))
 		if err != nil {
-			slog.Error("find subscriptions failed", "err", err)
+			w.logger.Error("find subscriptions failed", zap.Error(err))
 			continue
 		}
 		for _, sub := range subs {
-			// delivery 
+			// delivery
 			if err := d.Delivery(ctx, e, sub); err != nil {
-				slog.Error("delivery failed", "sub", sub.ID, "err", err)
+				w.logger.Error("delivery failed", []zap.Field{zap.String("sub", sub.ID), zap.Error(err)}...)
 			}
 		}
-		if err := w.Reader.CommitMessages(ctx, msg); err != nil {
-			slog.Error("commit failed", "err", err)
+		if err := w.c.Reader.CommitMessages(ctx, msg); err != nil {
+			w.logger.Error("commit failed", zap.Error(err))
 		}
 	}
 }

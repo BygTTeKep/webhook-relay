@@ -2,43 +2,42 @@ package events
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
+	"webhook-relay/internal/httpx"
+
+	"go.uber.org/zap"
 )
 
 type Handler struct {
 	service *Service
+	logger  *zap.Logger
 }
 
-func NewHandler(service *Service) *Handler {
+func NewHandler(service *Service, logger *zap.Logger) *Handler {
 	return &Handler{
 		service: service,
+		logger:  logger,
 	}
 }
 
-func (h *Handler)Register(mux *http.ServeMux) {
-	mux.HandleFunc("POST /events", h.create)
+func (h *Handler) Register(mux *http.ServeMux) {
+	mux.HandleFunc("POST /events", httpx.Wrap(h.logger, h.create))
 }
 
-func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) create(w http.ResponseWriter, r *http.Request) error {
 	var req CreateEventRequestDto
 	ctx := r.Context()
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		slog.Error(err.Error())
-		http.Error(w, "invalid json", http.StatusBadRequest)
-		return
+		return httpx.BadRequest("invalid json", err)
 	}
 	if err := req.Validate(); err != nil {
-		slog.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return httpx.BadRequest(err.Error(), err)
 	}
 	event, err := h.service.Publish(ctx, req)
 	if err != nil {
-		slog.Error(err.Error())
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
+		return err
 	}
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(event)
+	return nil
 }

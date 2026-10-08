@@ -26,11 +26,17 @@ type KafkaConfig struct {
 	Topic string `mapstructure:"topic"`
 }
 
+type LoggerConfig struct {
+	Dev bool `mapstructure:"dev"`
+}
+
 type Config struct {
 	DBCfg  DBConfig `mapstructure:"database"`
 	AppCfg AppConfig `mapstructure:"app"`
 	KafkaCfg KafkaConfig `mapstructure:"kafka"`
+	LoggerCfg LoggerConfig `mapstructure:"logger"`
 }
+
 
 func LoadConfig(path string) (c *Config, err error) {
 	v := viper.New()
