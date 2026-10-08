@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,25 +12,39 @@ import (
 	"webhook-relay/internal/config"
 	"webhook-relay/internal/database"
 	"webhook-relay/internal/events"
+	"webhook-relay/internal/logger"
 	"webhook-relay/internal/subs"
+
+	"go.uber.org/zap"
 )
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+	cfg, err := config.LoadConfig("../../internal/config")
 
-	if err := run(ctx); err != nil {
-		slog.Error("api exited with error", "err", err)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "load config: %w", err)
 		os.Exit(1)
-	}	
+	}
+	log, err := logger.New("api", cfg.LoggerCfg.Dev)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "logger init: %w", err)
+		os.Exit(1)
+
+	}
+	code := 0
+	if err := run(ctx, cfg, log); err != nil {
+		log.Error("api exited with error", zap.Error(err))
+		code = 1
+	}
+	stop()
+	_ = log.Sync()
+	os.Exit(code)
 }
 
-func run(ctx context.Context) error {
+func run(ctx context.Context, cfg *config.Config, log *zap.Logger) error {
 	serverErr := make(chan error, 1)
-	cfg, err := config.LoadConfig("../../internal/config")
-	if err != nil {
-		return fmt.Errorf("load config: %w", err)
-	}
+
 	pg, err := database.NewPG(ctx, &cfg.DBCfg)
 	if err != nil {
 		return fmt.Errorf("connect to db: %w", err)
@@ -41,39 +54,41 @@ func run(ctx context.Context) error {
 	// 	return fmt.Errorf("run migrations: %w", err)
 	// }
 
-	mux := http.NewServeMux();
+	mux := http.NewServeMux()
 
 	// Subs
 	subRepo := subs.NewRepo(pg)
 	subServices := subs.NewService(subRepo)
-	subRouters := subs.NewHandler(subServices)
+	subRouters := subs.NewHandler(subServices, log)
 
 	eventRepo := events.NewRepository(pg)
 	eventService := events.NewEventService(eventRepo)
-	eventHandler := events.NewHandler(eventService)
-
+	eventHandler := events.NewHandler(eventService, log)
 
 	subRouters.Register(mux)
 	eventHandler.Register(mux)
 
 	srv := &http.Server{
-		Addr: ":8000",
-		Handler: mux,
-		ReadTimeout: 10 * time.Second,
+		Addr:              ":" + cfg.AppCfg.Port,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {
-		slog.Info("server started")
+		log.Info("server started", zap.String("port", cfg.AppCfg.Port))
 
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serverErr <- err
-			return 			
+			return
 		}
 		close(serverErr)
 	}()
 
 	select {
-	case  <-ctx.Done():
+	case <-ctx.Done():
 	case srvErr := <-serverErr:
 		if srvErr != nil {
 			return fmt.Errorf("server failed: %w", srvErr)
@@ -83,7 +98,8 @@ func run(ctx context.Context) error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		slog.Error("shutdown failed", "err", err)
+		log.Error("shutdown failed", zap.Error(err))
+		return fmt.Errorf("shutdown: %w", err)
 	}
 	return nil
 }
