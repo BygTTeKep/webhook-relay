@@ -1,10 +1,4 @@
 database:
-  driver: "pg"
-  host: "localhost"
-  port: 5432
-  username: "webhook"
-  name: "webhook_relay"
-  password: "webhook"
   dsn: "postgresql://webhook:webhook@localhost:5432/webhook_relay"
 
 
