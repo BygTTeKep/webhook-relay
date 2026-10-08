@@ -5,6 +5,7 @@ database:
   username: "webhook"
   name: "webhook_relay"
   password: "webhook"
+  dsn: "postgres://webhook:webhook@5432/webhook_relay?sslmode=false"
 
 app:
   host: "localhost"

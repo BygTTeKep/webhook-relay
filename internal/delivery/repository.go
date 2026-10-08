@@ -19,11 +19,11 @@ func (r *Repository) Save(ctx context.Context, d Delivery) error {
 		INSERT INTO delivery(event_id, subscription_id, status, attempts, last_attempt_at)
 		VALUES($1, $2, $3, $4, $5)
 	`
-	res, err := r.DB.ExecContext(ctx, query, d.EventID, d.SubscriptionID, d.Status, d.Attempts, d.LastAttemptAt)
+	res, err := r.DB.Exec(ctx, query, d.EventID, d.SubscriptionID, d.Status, d.Attempts, d.LastAttemptAt)
 	if err != nil {
 		return err
 	}
-	affected, err := res.RowsAffected()
+	affected := res.RowsAffected()
 	if affected == 0 {
 		return fmt.Errorf("delivery save: ", err)
 	}

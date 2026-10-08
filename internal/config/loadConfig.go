@@ -14,6 +14,7 @@ type DBConfig struct {
 	Username string `mapstructure:"username"`
 	Name     string `mapstructure:"name"`
 	Password string `mapstructure:"password"`
+	Dsn string `mapstructure:"dsn"`
 }
 type AppConfig struct {
 	Host string `mapstructure:"host"`

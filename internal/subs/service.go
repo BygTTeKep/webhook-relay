@@ -2,17 +2,18 @@ package subs
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"webhook-relay/internal/events"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type RepoInterface interface {
-	Save(ctx context.Context, s Subscription, tx *sql.Tx) (string, error)
+	Save(ctx context.Context, s Subscription, tx pgx.Tx) (string, error)
 	Get(ctx context.Context, id, secret string) (Subscription, error)
 	FindByEventType(ctx context.Context, t events.EventType) ([]Subscription, error)
 	SaveSubAndEventsTx(ctx context.Context, s Subscription, e []string) error
-	SaveSubEventsTx(ctx context.Context, subId string, e []string, tx *sql.Tx) error
+	SaveSubEventsTx(ctx context.Context, subId string, e []string, tx pgx.Tx) error
 }
 
 type Service struct {

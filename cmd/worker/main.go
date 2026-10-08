@@ -31,7 +31,7 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
-	db, err := database.NewPG(&cfg.DBCfg)
+	db, err := database.NewPG(ctx, &cfg.DBCfg)
 	if err != nil {
 		return fmt.Errorf("connect to db: %w", err)
 	}

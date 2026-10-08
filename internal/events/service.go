@@ -2,13 +2,14 @@ package events
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type RepositoryInterface interface {
-	SaveEvent(ctx context.Context, tx *sql.Tx, e Event) error
+	SaveEvent(ctx context.Context, tx pgx.Tx, e Event) error
 	Publish(ctx context.Context, e Event) error
-	SaveOutbox(ctx context.Context, tx *sql.Tx, e Event) error
+	SaveOutbox(ctx context.Context, tx pgx.Tx, e Event) error
 }
 
 

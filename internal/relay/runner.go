@@ -2,11 +2,12 @@ package relay
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"log/slog"
 	"time"
 	"webhook-relay/internal/kafka"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type Runner struct {
@@ -46,7 +47,7 @@ func (r *Runner) Run(ctx context.Context) {
 }
 
 func (r *Runner) ticker(ctx context.Context) error {
-	err := r.repo.WithTx(ctx, func(tx *sql.Tx) error {
+	err := r.repo.WithTx(ctx, func(tx pgx.Tx) error {
 		rows, err := r.repo.FetchPending(ctx, tx, 100)
 		if err != nil {
 			return err

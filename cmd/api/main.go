@@ -32,14 +32,14 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
-	pg, err := database.NewPG(&cfg.DBCfg)
-	defer pg.Close()
+	pg, err := database.NewPG(ctx, &cfg.DBCfg)
 	if err != nil {
 		return fmt.Errorf("connect to db: %w", err)
 	}
-	if err = database.RunMigrations(pg.DB); err != nil {
-		return fmt.Errorf("run migrations: %w", err)
-	}
+	defer pg.Close()
+	// if err = database.RunMigrations(pg.DB); err != nil {
+	// 	return fmt.Errorf("run migrations: %w", err)
+	// }
 
 	mux := http.NewServeMux();
 

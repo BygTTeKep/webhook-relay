@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"webhook-relay/internal/database"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5"
 )
 
 type RepositoryInterface interface {
@@ -21,7 +21,7 @@ func NewRepository(db *database.PGRepository) *Repository {
 	return &Repository{db}
 }
 
-func (r *Repository) FetchPending(ctx context.Context, tx *sql.Tx, limit int) ([]Message, error) {
+func (r *Repository) FetchPending(ctx context.Context, tx pgx.Tx, limit int) ([]Message, error) {
 	query := `
 		SELECT 
 			o.id as id, 
@@ -36,7 +36,7 @@ func (r *Repository) FetchPending(ctx context.Context, tx *sql.Tx, limit int) ([
 		LIMIT $1
 		FOR UPDATE SKIP LOCKED
 	`
-	row, err := tx.QueryContext(ctx, query, limit)
+	row, err := tx.Query(ctx, query, limit)
 	if err != nil {
 		return nil, fmt.Errorf("query outbox: %w", err)
 	}
@@ -57,11 +57,14 @@ func (r *Repository) FetchPending(ctx context.Context, tx *sql.Tx, limit int) ([
 	return outbox, nil
 }
 
-func (r *Repository) MarkSend(ctx context.Context, tx *sql.Tx, ids []int64) error {
+func (r *Repository) MarkSend(ctx context.Context, tx pgx.Tx, ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
 	query := `
 		UPDATE outbox SET status='sent' WHERE id = ANY($1)
 	`
-	_, err := tx.ExecContext(ctx, query, pq.Array(ids))
+	_, err := tx.Exec(ctx, query, ids)
 	if err != nil {
 		return fmt.Errorf("mark send: %w", err)
 	}
