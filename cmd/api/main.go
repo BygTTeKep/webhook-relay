@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 	"webhook-relay/internal/config"
@@ -68,8 +69,9 @@ func run(ctx context.Context, cfg *config.Config, log *zap.Logger) error {
 	subRouters.Register(mux)
 	eventHandler.Register(mux)
 
+	appPort := strconv.Itoa(cfg.AppCfg.Port)
 	srv := &http.Server{
-		Addr:              ":" + cfg.AppCfg.Port,
+		Addr:              ":" + appPort,
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
@@ -78,7 +80,7 @@ func run(ctx context.Context, cfg *config.Config, log *zap.Logger) error {
 	}
 
 	go func() {
-		log.Info("server started", zap.String("port", cfg.AppCfg.Port))
+		log.Info("server started", zap.String("port", appPort))
 
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serverErr <- err
