@@ -13,3 +13,6 @@ kafka:
 
 logger:
   dev: true
+
+grpcservers:
+  stats: "localhost:50051"

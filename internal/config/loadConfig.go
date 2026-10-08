@@ -25,11 +25,16 @@ type LoggerConfig struct {
 	Dev bool `mapstructure:"dev"`
 }
 
+type GrpcServersConfig struct {
+	StatsServ string `mapstructure:"stats"`
+}
+
 type Config struct {
-	DBCfg     DBConfig     `mapstructure:"database" validate:"required"`
-	AppCfg    AppConfig    `mapstructure:"app" validate:"required"`
-	KafkaCfg  KafkaConfig  `mapstructure:"kafka" validate:"required"`
-	LoggerCfg LoggerConfig `mapstructure:"logger" validate:"required"`
+	DBCfg      DBConfig          `mapstructure:"database" validate:"required"`
+	AppCfg     AppConfig         `mapstructure:"app" validate:"required"`
+	KafkaCfg   KafkaConfig       `mapstructure:"kafka" validate:"required"`
+	LoggerCfg  LoggerConfig      `mapstructure:"logger" validate:"required"`
+	GrpcServer GrpcServersConfig `mapstructure:"grpcservers" validate:"required"`
 }
 
 func LoadConfig(path string) (c *Config, err error) {
