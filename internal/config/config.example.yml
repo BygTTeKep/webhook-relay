@@ -16,3 +16,7 @@ logger:
 
 grpcservers:
   stats: "localhost:50051"
+
+redis:
+  addr: "localhost:6379"
+  db: 0

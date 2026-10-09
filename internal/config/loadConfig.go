@@ -29,12 +29,18 @@ type GrpcServersConfig struct {
 	StatsServ string `mapstructure:"stats"`
 }
 
+type RedisConfig struct {
+	Addr string `mapstructure:"addr"`
+	Db   int    `mapstructure:"db"`
+}
+
 type Config struct {
 	DBCfg      DBConfig          `mapstructure:"database" validate:"required"`
 	AppCfg     AppConfig         `mapstructure:"app" validate:"required"`
 	KafkaCfg   KafkaConfig       `mapstructure:"kafka" validate:"required"`
 	LoggerCfg  LoggerConfig      `mapstructure:"logger" validate:"required"`
 	GrpcServer GrpcServersConfig `mapstructure:"grpcservers" validate:"required"`
+	RedisCfg   RedisConfig       `mapstructure:"redis" validate:"required"`
 }
 
 func LoadConfig(path string) (c *Config, err error) {

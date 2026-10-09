@@ -237,6 +237,126 @@ func (x *GetStatsResponse) GetAvgLatencyMs() float64 {
 	return 0
 }
 
+type StreamStatsRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	WebhookId      string                 `protobuf:"bytes,1,opt,name=webhook_id,json=webhookId,proto3" json:"webhook_id,omitempty"`
+	IntervalSecond int32                  `protobuf:"varint,2,opt,name=interval_second,json=intervalSecond,proto3" json:"interval_second,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *StreamStatsRequest) Reset() {
+	*x = StreamStatsRequest{}
+	mi := &file_stats_v1_stats_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamStatsRequest) ProtoMessage() {}
+
+func (x *StreamStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_stats_v1_stats_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamStatsRequest.ProtoReflect.Descriptor instead.
+func (*StreamStatsRequest) Descriptor() ([]byte, []int) {
+	return file_stats_v1_stats_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *StreamStatsRequest) GetWebhookId() string {
+	if x != nil {
+		return x.WebhookId
+	}
+	return ""
+}
+
+func (x *StreamStatsRequest) GetIntervalSecond() int32 {
+	if x != nil {
+		return x.IntervalSecond
+	}
+	return 0
+}
+
+type StatsUpdate struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Total         int64                  `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
+	Succeeded     int64                  `protobuf:"varint,2,opt,name=succeeded,proto3" json:"succeeded,omitempty"`
+	Failed        int64                  `protobuf:"varint,3,opt,name=failed,proto3" json:"failed,omitempty"`
+	AvgLatenct    float64                `protobuf:"fixed64,4,opt,name=avg_latenct,json=avgLatenct,proto3" json:"avg_latenct,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StatsUpdate) Reset() {
+	*x = StatsUpdate{}
+	mi := &file_stats_v1_stats_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StatsUpdate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StatsUpdate) ProtoMessage() {}
+
+func (x *StatsUpdate) ProtoReflect() protoreflect.Message {
+	mi := &file_stats_v1_stats_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StatsUpdate.ProtoReflect.Descriptor instead.
+func (*StatsUpdate) Descriptor() ([]byte, []int) {
+	return file_stats_v1_stats_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *StatsUpdate) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *StatsUpdate) GetSucceeded() int64 {
+	if x != nil {
+		return x.Succeeded
+	}
+	return 0
+}
+
+func (x *StatsUpdate) GetFailed() int64 {
+	if x != nil {
+		return x.Failed
+	}
+	return 0
+}
+
+func (x *StatsUpdate) GetAvgLatenct() float64 {
+	if x != nil {
+		return x.AvgLatenct
+	}
+	return 0
+}
+
 var File_stats_v1_stats_proto protoreflect.FileDescriptor
 
 const file_stats_v1_stats_proto_rawDesc = "" +
@@ -258,10 +378,21 @@ const file_stats_v1_stats_proto_rawDesc = "" +
 	"\x05total\x18\x01 \x01(\x03R\x05total\x12\x1c\n" +
 	"\tsucceeded\x18\x02 \x01(\x03R\tsucceeded\x12\x16\n" +
 	"\x06failed\x18\x03 \x01(\x03R\x06failed\x12$\n" +
-	"\x0eavg_latency_ms\x18\x04 \x01(\x01R\favgLatencyMs2\xa6\x01\n" +
+	"\x0eavg_latency_ms\x18\x04 \x01(\x01R\favgLatencyMs\"\\\n" +
+	"\x12StreamStatsRequest\x12\x1d\n" +
+	"\n" +
+	"webhook_id\x18\x01 \x01(\tR\twebhookId\x12'\n" +
+	"\x0finterval_second\x18\x02 \x01(\x05R\x0eintervalSecond\"z\n" +
+	"\vStatsUpdate\x12\x14\n" +
+	"\x05total\x18\x01 \x01(\x03R\x05total\x12\x1c\n" +
+	"\tsucceeded\x18\x02 \x01(\x03R\tsucceeded\x12\x16\n" +
+	"\x06failed\x18\x03 \x01(\x03R\x06failed\x12\x1f\n" +
+	"\vavg_latenct\x18\x04 \x01(\x01R\n" +
+	"avgLatenct2\xec\x01\n" +
 	"\fStatsService\x12S\n" +
 	"\x0eRecordDelivery\x12\x1f.stats.v1.RecordDeliveryRequest\x1a .stats.v1.RecordDeliveryResponse\x12A\n" +
-	"\bGetStats\x12\x19.stats.v1.GetStatsRequest\x1a\x1a.stats.v1.GetStatsResponseB$Z\"webhook-relay/gen/stats/v1;statsv1b\x06proto3"
+	"\bGetStats\x12\x19.stats.v1.GetStatsRequest\x1a\x1a.stats.v1.GetStatsResponse\x12D\n" +
+	"\vStreamStats\x12\x1c.stats.v1.StreamStatsRequest\x1a\x15.stats.v1.StatsUpdate0\x01B$Z\"webhook-relay/gen/stats/v1;statsv1b\x06proto3"
 
 var (
 	file_stats_v1_stats_proto_rawDescOnce sync.Once
@@ -275,20 +406,24 @@ func file_stats_v1_stats_proto_rawDescGZIP() []byte {
 	return file_stats_v1_stats_proto_rawDescData
 }
 
-var file_stats_v1_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_stats_v1_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_stats_v1_stats_proto_goTypes = []any{
 	(*RecordDeliveryRequest)(nil),  // 0: stats.v1.RecordDeliveryRequest
 	(*RecordDeliveryResponse)(nil), // 1: stats.v1.RecordDeliveryResponse
 	(*GetStatsRequest)(nil),        // 2: stats.v1.GetStatsRequest
 	(*GetStatsResponse)(nil),       // 3: stats.v1.GetStatsResponse
+	(*StreamStatsRequest)(nil),     // 4: stats.v1.StreamStatsRequest
+	(*StatsUpdate)(nil),            // 5: stats.v1.StatsUpdate
 }
 var file_stats_v1_stats_proto_depIdxs = []int32{
 	0, // 0: stats.v1.StatsService.RecordDelivery:input_type -> stats.v1.RecordDeliveryRequest
 	2, // 1: stats.v1.StatsService.GetStats:input_type -> stats.v1.GetStatsRequest
-	1, // 2: stats.v1.StatsService.RecordDelivery:output_type -> stats.v1.RecordDeliveryResponse
-	3, // 3: stats.v1.StatsService.GetStats:output_type -> stats.v1.GetStatsResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	4, // 2: stats.v1.StatsService.StreamStats:input_type -> stats.v1.StreamStatsRequest
+	1, // 3: stats.v1.StatsService.RecordDelivery:output_type -> stats.v1.RecordDeliveryResponse
+	3, // 4: stats.v1.StatsService.GetStats:output_type -> stats.v1.GetStatsResponse
+	5, // 5: stats.v1.StatsService.StreamStats:output_type -> stats.v1.StatsUpdate
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -305,7 +440,7 @@ func file_stats_v1_stats_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_stats_v1_stats_proto_rawDesc), len(file_stats_v1_stats_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

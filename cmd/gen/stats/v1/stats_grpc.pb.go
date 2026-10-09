@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	StatsService_RecordDelivery_FullMethodName = "/stats.v1.StatsService/RecordDelivery"
 	StatsService_GetStats_FullMethodName       = "/stats.v1.StatsService/GetStats"
+	StatsService_StreamStats_FullMethodName    = "/stats.v1.StatsService/StreamStats"
 )
 
 // StatsServiceClient is the client API for StatsService service.
@@ -29,6 +30,7 @@ const (
 type StatsServiceClient interface {
 	RecordDelivery(ctx context.Context, in *RecordDeliveryRequest, opts ...grpc.CallOption) (*RecordDeliveryResponse, error)
 	GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*GetStatsResponse, error)
+	StreamStats(ctx context.Context, in *StreamStatsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StatsUpdate], error)
 }
 
 type statsServiceClient struct {
@@ -59,12 +61,32 @@ func (c *statsServiceClient) GetStats(ctx context.Context, in *GetStatsRequest, 
 	return out, nil
 }
 
+func (c *statsServiceClient) StreamStats(ctx context.Context, in *StreamStatsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StatsUpdate], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &StatsService_ServiceDesc.Streams[0], StatsService_StreamStats_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamStatsRequest, StatsUpdate]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StatsService_StreamStatsClient = grpc.ServerStreamingClient[StatsUpdate]
+
 // StatsServiceServer is the server API for StatsService service.
 // All implementations must embed UnimplementedStatsServiceServer
 // for forward compatibility.
 type StatsServiceServer interface {
 	RecordDelivery(context.Context, *RecordDeliveryRequest) (*RecordDeliveryResponse, error)
 	GetStats(context.Context, *GetStatsRequest) (*GetStatsResponse, error)
+	StreamStats(*StreamStatsRequest, grpc.ServerStreamingServer[StatsUpdate]) error
 	mustEmbedUnimplementedStatsServiceServer()
 }
 
@@ -80,6 +102,9 @@ func (UnimplementedStatsServiceServer) RecordDelivery(context.Context, *RecordDe
 }
 func (UnimplementedStatsServiceServer) GetStats(context.Context, *GetStatsRequest) (*GetStatsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetStats not implemented")
+}
+func (UnimplementedStatsServiceServer) StreamStats(*StreamStatsRequest, grpc.ServerStreamingServer[StatsUpdate]) error {
+	return status.Error(codes.Unimplemented, "method StreamStats not implemented")
 }
 func (UnimplementedStatsServiceServer) mustEmbedUnimplementedStatsServiceServer() {}
 func (UnimplementedStatsServiceServer) testEmbeddedByValue()                      {}
@@ -138,6 +163,17 @@ func _StatsService_GetStats_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StatsService_StreamStats_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamStatsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(StatsServiceServer).StreamStats(m, &grpc.GenericServerStream[StreamStatsRequest, StatsUpdate]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StatsService_StreamStatsServer = grpc.ServerStreamingServer[StatsUpdate]
+
 // StatsService_ServiceDesc is the grpc.ServiceDesc for StatsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -154,6 +190,12 @@ var StatsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StatsService_GetStats_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StreamStats",
+			Handler:       _StatsService_StreamStats_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "stats/v1/stats.proto",
 }
