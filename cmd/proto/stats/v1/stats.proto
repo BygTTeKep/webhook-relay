@@ -8,6 +8,7 @@ option go_package = "webhook-relay/gen/stats/v1;statsv1";
 service StatsService {
     rpc RecordDelivery(RecordDeliveryRequest) returns (RecordDeliveryResponse);
     rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+    rpc StreamStats(StreamStatsRequest) returns (stream StatsUpdate);
 }
 
 message RecordDeliveryRequest {
@@ -28,4 +29,16 @@ message GetStatsResponse {
     int64 succeeded = 2;
     int64 failed = 3;
     double avg_latency_ms = 4;
+}
+
+message StreamStatsRequest {
+    string webhook_id = 1;
+    int32  interval_second = 2;
+}
+
+message StatsUpdate  {
+    int64 total = 1;
+    int64 succeeded = 2;
+    int64 failed = 3;
+    double avg_latenct = 4;
 }

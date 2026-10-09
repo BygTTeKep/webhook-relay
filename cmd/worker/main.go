@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -69,6 +71,28 @@ func run(ctx context.Context, cfg *config.Config, log *zap.Logger) error {
 
 	wr := worker.NewWorker(consumer, log)
 	log.Info("worker started")
+	go func() {
+		stream, err := statsClient.StreamStats(ctx, &statsv1.StreamStatsRequest{
+			WebhookId:      "61604ceb-9cc1-4de1-8b98-992ac4d8c293", //TODO
+			IntervalSecond: 2,
+		})
+		if err != nil {
+			log.Error("stream", zap.Error(err))
+			return
+		}
+		for {
+			upd, err := stream.Recv()
+			if errors.Is(err, io.EOF) {
+				log.Error("stream", zap.Error(err))
+				return
+			}
+			if err != nil {
+				log.Error("stream", zap.Error(err))
+				return
+			}
+			fmt.Printf("total=%d failed=%d avg=%.1fms\n", upd.Total, upd.Failed, upd.AvgLatenct)
+		}
+	}()
 	wr.Run(ctx, subRepo, deliveryService)
 	return nil
 }
