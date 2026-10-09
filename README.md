@@ -3,6 +3,15 @@
 ## Как это работает
 ![how it work](howItWork.png)
 
+## Использованные технологии
+go, grpc, kafka, zap, redis pub/sub, pgxpool/pgx, docker, viper, validator,
+
+## Сервисы
+- stats - сервис статистики(grpc)
+- api - api для subscription и events
+- relay - producer кафки
+- worker - consumer кафки + клиент stats server stream grpc
+
 ## Основные сущности
 
 ### Subscriptions
